@@ -1,0 +1,2 @@
+launcher:navigation:sensor:vision
+-DCATKIN_DEVEL_PREFIX=/home/jetson/jalavahana_ws/devel -DCMAKE_INSTALL_PREFIX=/home/jetson/jalavahana_ws/install -G Unix Makefiles

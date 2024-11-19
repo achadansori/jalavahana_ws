@@ -1,0 +1,4 @@
+<launch>
+    <!-- Node untuk Deteksi Objek -->
+    <node pkg="vision" type="vision_node.py" name="vision_node" output="screen" />
+</launch>
