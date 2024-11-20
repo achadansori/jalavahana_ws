@@ -2,83 +2,87 @@
 
 import rospy
 import serial
-import json
-from std_msgs.msg import Int16MultiArray
+from std_msgs.msg import String, Bool, Int16
 
-class RemoteControlNode:
-    def __init__(self):
-        rospy.init_node('remote_control_node', anonymous=True)
-        
-        # Serial setup
-        self.serial_port = rospy.get_param('~serial_port', '/dev/ttyUSB0')
-        self.baud_rate = rospy.get_param('~baud_rate', 115200)
-        self.serial = None
-        self.connect_serial()
-        
-        # Remote data array
-        self.remote_data = [1500] * 10  # Initialize with center values
-        
-        # Publisher untuk data remote mentah
-        self.raw_data_pub = rospy.Publisher('/remote/raw_data', Int16MultiArray, queue_size=10)
-        
-        # Rate
-        self.rate = rospy.Rate(50)  # 50 Hz untuk pembacaan serial
-        
-    def connect_serial(self):
-        """Establish serial connection"""
+def parse_serial_data(serial_line):
+    """
+    Parse the serial data line into an array of integers.
+    """
+    try:
+        data = list(map(int, serial_line.strip().split()))
+        return data
+    except ValueError:
+        rospy.logwarn("Failed to parse serial data")
+        return None
+
+def process_remote_data(data):
+    """
+    Process the parsed serial data and return the values for mode, arming, throttle, and yaw.
+    """
+    if len(data) < 8:  # Ensure data has enough elements
+        rospy.logwarn("Incomplete data received")
+        return None, None, None, None
+
+    # Process mode
+    if data[6] < 1300:
+        mode = "manual"
+    elif data[6] > 1700:
+        mode = "auto"
+    else:
+        mode = "neutral"
+
+    # Process arming
+    arming = data[7] > 1500
+
+    # Throttle and yaw
+    throttle = data[2]
+    yaw = data[0]
+
+    return mode, arming, throttle, yaw
+
+def remote_node():
+    """
+    Remote Node for reading serial data and publishing remote control commands.
+    """
+    rospy.init_node('remote_node', anonymous=True)
+
+    # Publishers for the topics
+    mode_pub = rospy.Publisher('mode', String, queue_size=10)
+    arming_pub = rospy.Publisher('arming', Bool, queue_size=10)
+    throttle_pub = rospy.Publisher('throttle_remote', Int16, queue_size=10)
+    yaw_pub = rospy.Publisher('yaw_remote', Int16, queue_size=10)
+
+    # Initialize serial connection
+    serial_port = "/dev/ttyACM0"
+    baud_rate = 9600
+    try:
+        ser = serial.Serial(serial_port, baud_rate, timeout=1)
+        rospy.loginfo(f"Connected to serial port: {serial_port} at {baud_rate} baud")
+    except serial.SerialException as e:
+        rospy.logerr(f"Serial port error: {e}")
+        return
+
+    # Loop to read and process serial data
+    rate = rospy.Rate(50)  # 50 Hz
+    while not rospy.is_shutdown():
         try:
-            self.serial = serial.Serial(
-                port=self.serial_port,
-                baudrate=self.baud_rate,
-                timeout=1.0
-            )
-            rospy.loginfo(f"Connected to {self.serial_port} at {self.baud_rate} baud")
-        except serial.SerialException as e:
-            rospy.logerr(f"Failed to connect to serial port: {e}")
-            self.serial = None
-    
-    def read_serial(self):
-        """Read and parse serial data from Arduino"""
-        if self.serial is None or not self.serial.is_open:
-            return False
-            
-        try:
-            if self.serial.in_waiting:
-                line = self.serial.readline().decode('utf-8').strip()
-                try:
-                    # Assuming Arduino sends JSON formatted data
-                    data = json.loads(line)
-                    if isinstance(data, list) and len(data) == 10:
-                        self.remote_data = data
-                        return True
-                except json.JSONDecodeError:
-                    rospy.logwarn("Failed to parse serial data")
-        except serial.SerialException as e:
-            rospy.logerr(f"Serial error: {e}")
-            self.serial = None
-        
-        return False
-    
-    def publish_remote_data(self):
-        """Publish remote control data"""
-        msg = Int16MultiArray()
-        msg.data = self.remote_data
-        self.raw_data_pub.publish(msg)
-    
-    def run(self):
-        """Main run loop"""
-        while not rospy.is_shutdown():
-            if self.read_serial():
-                self.publish_remote_data()
-            self.rate.sleep()
-        
-        # Clean up
-        if self.serial is not None and self.serial.is_open:
-            self.serial.close()
+            if ser.in_waiting > 0:
+                serial_line = ser.readline().decode('utf-8')
+                data = parse_serial_data(serial_line)
+                if data:
+                    mode, arming, throttle, yaw = process_remote_data(data)
+                    if mode is not None:
+                        mode_pub.publish(mode)
+                        arming_pub.publish(arming)
+                        throttle_pub.publish(throttle)
+                        yaw_pub.publish(yaw)
+        except Exception as e:
+            rospy.logerr(f"Error reading serial data: {e}")
+
+        rate.sleep()
 
 if __name__ == '__main__':
     try:
-        remote_node = RemoteControlNode()
-        remote_node.run()
+        remote_node()
     except rospy.ROSInterruptException:
         pass
