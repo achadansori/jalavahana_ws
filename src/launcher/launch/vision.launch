@@ -1,4 +1,11 @@
 <launch>
+    <!-- Menetapkan parameter untuk max yaw, min yaw, ukuran kamera, dan nomor perangkat kamera -->
+    <param name="max_yaw" value="1700"/>
+    <param name="min_yaw" value="1300"/>
+    <param name="camera_width" value="640"/>
+    <param name="camera_height" value="480"/>
+    <param name="camera_device" value="0"/>  <!-- Menetapkan nomor kamera (0 = Kamera pertama) -->
+
     <!-- Node untuk Deteksi Objek -->
     <node pkg="vision" type="vision_node.py" name="vision_node" output="screen" />
 </launch>
