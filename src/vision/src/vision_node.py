@@ -51,6 +51,7 @@ class Detection:
         img_msg = self.bridge.cv2_to_imgmsg(frame, 'bgr8')
         self.navigation_vision_pub.publish(img_msg)
 
+        return frame
 
     def calculate_fps(self):
         current_time = rospy.get_time()
@@ -69,8 +70,17 @@ class Detection:
                 if not success:
                     break
 
-                self.processor(frame)
+                # Process frame and display result
+                processed_frame = self.processor(frame)
                 self.calculate_fps()
+
+                # Display the processed frame
+                cv2.imshow("Detection Window", processed_frame)
+
+                # Break on 'q' key press
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
                 self.rate.sleep()
 
         except Exception as e:
