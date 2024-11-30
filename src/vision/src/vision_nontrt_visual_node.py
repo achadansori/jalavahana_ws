@@ -32,14 +32,21 @@ class Detection:
         self.prev_time = rospy.get_time()
 
     def draw_degree_lines(self, frame):
+        # Garis horizontal di tengah frame
         mid_y = self.HEIGHT // 2
         cv2.line(frame, (0, mid_y), (self.WIDTH, mid_y), (255, 0, 0), 2)
 
+        # Garis vertikal di tengah frame
+        mid_x = self.WIDTH // 2
+        cv2.line(frame, (mid_x, 0), (mid_x, self.HEIGHT), (255, 0, 0), 2)
+
+        # Tambahkan garis derajat horizontal
         for degree in range(0, 91, 5):
             x = int((degree / 90) * self.WIDTH)
-            cv2.line(frame, (x, mid_y-10), (x, mid_y+10), (0, 255, 0), 2)
+            cv2.line(frame, (x, mid_y - 10), (x, mid_y + 10), (0, 255, 0), 2)
 
         return frame
+
 
     def calculate_yaw(self, midpoint_x, boat_type):
         normalized_pos = midpoint_x / self.WIDTH
@@ -146,7 +153,7 @@ class Detection:
         self.prev_time = current_time
 
     def run(self):
-        cam = cv2.VideoCapture(2)
+        cam = cv2.VideoCapture(0)
         cam.set(3, self.WIDTH)
         cam.set(4, self.HEIGHT)
 
