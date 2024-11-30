@@ -80,11 +80,11 @@ class NavigationNode:
         override_msg = OverrideRCIn()
         if self.mode == "manual":
             # Set control values for manual mode
-            override_msg.channels[0] = self.yaw  # Yaw (Channel 0)
-            override_msg.channels[2] = self.throttle  # Throttle (Channel 2)
+            override_msg.channels[1] = self.yaw  # Yaw (Channel 0)
+            override_msg.channels[3] = self.throttle  # Throttle (Channel 2)
             # Set other control channels to neutral (1500)
-            override_msg.channels[1] = 1500  # Pitch (Channel 1)
-            override_msg.channels[3] = 1500  # Roll (Channel 3)
+            override_msg.channels[0] = 1500  # Pitch (Channel 1)
+            override_msg.channels[2] = 1500  # Roll (Channel 3)
             override_msg.channels[4] = 1000  # Invalid for manual mode
             override_msg.channels[5] = 1000  # Invalid for manual mode
             override_msg.channels[6] = 1000  # Invalid for manual mode
